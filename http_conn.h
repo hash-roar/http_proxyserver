@@ -1,8 +1,7 @@
 
 #include "./tools/tool.h"
 using mapType = std::map<std::string, std::string>;
-
-
+#define out(x) std::cout << x << std::endl;
 
 class server
 {
@@ -55,17 +54,21 @@ private:
 public:
     http_conn();
     ~http_conn();
+    int get_fd()
+    {
+        return fd;
+    }
 
 public:
     void handle_request();
     void bad_request();
     void error_print(const char *mess);
     void exc_cgi();
-    void send_header(std::map<std::string,std::string>& header,std::string &first_line);
+    void send_header(std::map<std::string, std::string> &header, std::string &first_line);
     void fourOfour_error();
     void send_server_file();
     void parse_header(const std::string &s);
-    std::string  parse_mime_type(const std::string &file_path);
+    std::string parse_mime_type(const std::string &file_path);
     void parse_mime_type(const std::string &url, std::string &mime_type);
     int get_one_line(char *buffer, int size);
     void not_implemented();
@@ -75,7 +78,6 @@ public:
     void server_error();
 };
 
-
 //-------------------------------------------------------------->
 //作为客户端连接的类
 typedef struct response_info
@@ -83,7 +85,7 @@ typedef struct response_info
     std::string http_version;
     int status;
     std::string status_text;
-}response_info;
+} response_info;
 
 class client_conn
 {
@@ -92,31 +94,37 @@ private:
     std::string host;
     int port;
     struct sockaddr_in saddr;
+
+public:
     mapType head_info;
     response_info response_info_obj;
+
 public:
-    client_conn(std::string host,int port);
+    client_conn(std::string host, int port);
     ~client_conn();
     int init_connect();
+    int get_fd()
+    {
+        return fd;
+    }
     // void send_request(char *buffer,int length);
-    std::string  get_header();
+    std::string get_header();
     void parse_header(const std::string &head_str);
-
 };
-
-
 
 //----------------------------------------------------------------------->
 class proxy
 {
 private:
-    std::string  front_url;
-    std::string  back_url;
-    http_conn* to_front;
-    client_conn * to_back;
+    std::string front_url;
+    std::string back_url;
+    http_conn *to_front;
+    client_conn *to_back;
+
 public:
-    proxy(http_conn* to_front,client_conn * to_back);
+    proxy(http_conn *to_front, client_conn *to_back);
     ~proxy();
+    void response_header();
+    void forward_data();
+    void send_header(std::map<std::string, std::string> &header, std::string &first_line);
 };
-
-

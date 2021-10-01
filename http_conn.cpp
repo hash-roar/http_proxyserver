@@ -312,6 +312,39 @@ proxy::proxy(http_conn *to_front, client_conn *to_back)
     this->to_front = to_front;
     this->to_back = to_back;
 }
+
+void proxy::response_header()
+{
+    std::string first_line = to_back->response_info_obj.http_version+std::to_string(to_back->response_info_obj.status)+to_back->response_info_obj.status_text;
+    send_header(to_back->head_info,first_line);
+}
+void proxy::send_header(std::map<std::string, std::string> &header, std::string &first_line)
+{
+    char buffer[1024] = {0};
+    sprintf(buffer, "%s\r\n", first_line.c_str());
+    send(to_front->get_fd(), buffer, strlen(buffer), 0);
+    for (auto &item : header)
+    {
+        sprintf(buffer, "%s: %s\r\n", item.first.c_str(), item.second.c_str());
+        send(to_front->get_fd(), buffer, strlen(buffer), 0);
+    }
+}
+void proxy::forward_data()
+{
+    char buffer[4096];
+    while (true)
+    {
+        int length = recv(to_back->get_fd(),buffer,sizeof(buffer),0);
+        if (length==0)
+        {
+            out("服务端断开连接")
+            break;
+        }
+        send(to_front->get_fd(),buffer,length,0);
+    }
+    
+}
+
 proxy::~proxy()
 {
 }
