@@ -1,5 +1,9 @@
 
 #include "./tools/tool.h"
+using mapType = std::map<std::string, std::string>;
+
+
+
 class server
 {
 private:
@@ -70,3 +74,49 @@ public:
     void excute_cgi_error();
     void server_error();
 };
+
+
+//-------------------------------------------------------------->
+//作为客户端连接的类
+typedef struct response_info
+{
+    std::string http_version;
+    int status;
+    std::string status_text;
+}response_info;
+
+class client_conn
+{
+private:
+    int fd;
+    std::string host;
+    int port;
+    struct sockaddr_in saddr;
+    mapType head_info;
+    response_info response_info_obj;
+public:
+    client_conn(std::string host,int port);
+    ~client_conn();
+    int init_connect();
+    // void send_request(char *buffer,int length);
+    std::string  get_header();
+    void parse_header(const std::string &head_str);
+
+};
+
+
+
+//----------------------------------------------------------------------->
+class proxy
+{
+private:
+    std::string  front_url;
+    std::string  back_url;
+    http_conn* to_front;
+    client_conn * to_back;
+public:
+    proxy(http_conn* to_front,client_conn * to_back);
+    ~proxy();
+};
+
+

@@ -13,3 +13,38 @@ std::vector<std::string> split_string(const std::string &str, const char pattern
     }
     return res;
 }
+
+int get_one_line(int fd,char *buffer, int size)
+{
+    int i = 0;
+    char c = '\0';
+    int n;
+
+    while ((i < size - 1) && (c != '\n'))
+    {
+        //recv()包含于<sys/socket.h>,参读《TLPI》P1259,
+        //读一个字节的数据存放在 c 中
+        n = recv(fd, &c, 1, 0);
+        /* DEBUG printf("%02X\n", c); */
+        if (n > 0)
+        {
+            if (c == '\r')
+            {
+                //
+                n = recv(fd, &c, 1, MSG_PEEK);
+                /* DEBUG printf("%02X\n", c); */
+                if ((n > 0) && (c == '\n'))
+                    recv(fd, &c, 1, 0);
+                else
+                    c = '\n';
+            }
+            buffer[i] = c;
+            i++;
+        }
+        else
+            c = '\n';
+    }
+    buffer[i] = '\0';
+
+    return (i);
+}
