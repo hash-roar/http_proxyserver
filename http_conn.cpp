@@ -140,7 +140,7 @@ void http_conn::resolve_get()
     struct stat st;
     if (stat(file_path.c_str(), &st) == -1)
     {
-        // fourOfour_error();
+        fourOfour_error();
     }
     else
     {
@@ -156,6 +156,7 @@ void http_conn::send_file(std::string file_path)
 {
     struct stat st;
     char buf[1024] = {0};
+    std::cout << file_path << std::endl;
     if (stat(file_path.c_str(), &st) == -1)
     {
         server_error();
@@ -192,8 +193,16 @@ void http_conn::server_error()
     sprintf(buf, "</body></html>\r\n");
     send(fd, buf, strlen(buf), 0);
 }
+void http_conn::fourOfour_error()
+{
+    char buf[1024];
+    std::string head_first_line = "HTTP/1.0 404 NOT FOUND";
+    mapType header{{"Server","bingyan server/0.1.0"},{"Content-Type","text/html"}};
+    send_header(header,head_first_line);
+    send_file(wwwroot_path + "/404.html");
+}
 
-std::string http_conn::parse_mime_type(const std::string &file_path)
+    std::string http_conn::parse_mime_type(const std::string &file_path)
 
 {
     auto pos = file_path.find('.');
@@ -214,11 +223,11 @@ std::string http_conn::parse_mime_type(const std::string &file_path)
 void http_conn::send_header(std::map<std::string, std::string> &header, std::string &first_line)
 {
     char buffer[1024] = {0};
-    sprintf(buffer,"%s\r\n", first_line.c_str());
+    sprintf(buffer, "%s\r\n", first_line.c_str());
     send(fd, buffer, strlen(buffer), 0);
     for (auto &item : header)
     {
-        sprintf(buffer,"%s: %s\r\n",item.first.c_str(), item.second.c_str());
+        sprintf(buffer, "%s: %s\r\n", item.first.c_str(), item.second.c_str());
         send(fd, buffer, strlen(buffer), 0);
     }
 }
