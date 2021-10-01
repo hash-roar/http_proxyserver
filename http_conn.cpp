@@ -1,5 +1,5 @@
 #include "./http_conn.h"
-using mapType = std::map<std::string,std::string>;
+using mapType = std::map<std::string, std::string>;
 // server ------------------------------------------->
 
 server::server(int port, const char *ip)
@@ -146,8 +146,51 @@ void http_conn::resolve_get()
     {
         mime_type = parse_mime_type(file_path);
     }
-    mapType header{{"Server","bingyan_server/0.1.0"},{"Content-Type",mime_type.c_str()}};
+    mapType header{{"Server", "bingyan_server/0.1.0"}, {"Content-Type", mime_type.c_str()}};
     std::string first_line = "HTTP/1.0 200 OK";
+    send_header(header, first_line);
+    send_file(file_path);
+}
+
+void http_conn::send_file(std::string file_path)
+{
+    struct stat st;
+    char buf[1024] = {0};
+    if (stat(file_path.c_str(), &st) == -1)
+    {
+        server_error();
+        return;
+    }
+    else
+    {
+        int content_length = st.st_size;
+        sprintf(buf, "content-length: %d\r\n", content_length);
+        send(fd, buf, strlen(buf), 0);
+        sprintf(buf, "\r\n");
+        send(fd, buf, strlen(buf), 0);
+        int file_fd = open(file_path.c_str(), O_RDONLY);
+        if (file_fd < 0)
+        {
+            server_error();
+            return;
+        }
+        sendfile(fd, file_fd, NULL, content_length);
+        close(file_fd);
+        return;
+    }
+}
+
+void http_conn::server_error()
+{
+    char buf[1024] = {0};
+    sprintf(buf, "\r\n");
+    send(fd, buf, strlen(buf), 0);
+    sprintf(buf, "<html><title>error</title><meta http-equiv='Content-Type' content='text/html'; charset='UTF-8'>\r\n");
+    send(fd, buf, strlen(buf), 0);
+    sprintf(buf, "<body><h1>服务端发生错误!</h1>\r\n");
+    send(fd, buf, strlen(buf), 0);
+    sprintf(buf, "</body></html>\r\n");
+    send(fd, buf, strlen(buf), 0);
 }
 
 std::string http_conn::parse_mime_type(const std::string &file_path)
@@ -171,11 +214,11 @@ std::string http_conn::parse_mime_type(const std::string &file_path)
 void http_conn::send_header(std::map<std::string, std::string> &header, std::string &first_line)
 {
     char buffer[1024] = {0};
-    sprintf("%s\r\n", first_line.c_str());
+    sprintf(buffer,"%s\r\n", first_line.c_str());
     send(fd, buffer, strlen(buffer), 0);
-    for (auto& item : header)
+    for (auto &item : header)
     {
-        sprintf("%s: %s\r\n",item.first.c_str(),item.second.c_str());
-        send(fd,buffer,strlen(buffer),0);
+        sprintf(buffer,"%s: %s\r\n",item.first.c_str(), item.second.c_str());
+        send(fd, buffer, strlen(buffer), 0);
     }
 }

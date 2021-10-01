@@ -68,4 +68,5 @@ public:
     void resolve_get();
     void send_file(std::string file_path);
     void excute_cgi_error();
+    void server_error();
 };
