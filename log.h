@@ -4,6 +4,8 @@
 #include "tools/tool.h"
 using str = std::string;
 using mapType = std::map<std::string, std::string>;
+
+
 enum LOG_LEVEL
 {
     INFO = 0,
@@ -31,77 +33,63 @@ public:
     logEvent(const str &logMeaasge, LOG_LEVEL log_level, int threadId, int processId, str file_name, str functionName, int lineNum);
     ~logEvent();
 };
-logEvent::logEvent(const str &logMeaasge, LOG_LEVEL log_level)
-{
-    this->log_meaasge = logMeaasge;
-    this->level = log_level;
-    this->time = get_local_time();
-}
-logEvent::logEvent(const str &logMeaasge, LOG_LEVEL log_level, int threadId, int processId)
-{
-    this->log_meaasge = logMeaasge;
-    this->level = log_level;
-    this->process_id = processId;
-    this->thread_id = threadId;
-    this->time = get_local_time();
-}
-logEvent::logEvent(const str &logMeaasge, LOG_LEVEL log_level, int threadId, int processId, str fileName, str functionName, int lineNum)
-{
-    this->log_meaasge = logMeaasge;
-    this->level = log_level;
-    this->process_id = processId;
-    this->thread_id = threadId;
-    this->file_name = fileName;
-    this->function_name = functionName;
-    this->time = get_local_time();
-}
 
-logEvent::~logEvent()
-{
-}
-
-class log
-{
-private:
-    std::map<LOG_LEVEL, str> loglevel_map{{INFO, "INFO"}, {DEBUG, "DEBUG"}, {WARNING, "WARNING"}, {ERROR, "ERROR"}, {FATAL, "FATAL"}};
-    // std::list<logAppender> appender_list;
-    logAppender log_appender;
-public:
-    log(const str & log_file_name);
-    void log::format_log(logEvent& log_event,LOG_LEVEL log_level,str &log_str);
-    void write_log();
-    ~log();
-};
-
-log::log(const str & log_file_name )
-{
-    
-}
-
-log::~log()
-{
-}
-
+//--------------------------------------------------------------
 class logAppender
 {
 private:
     /* data */
     pthread_mutex_t file_mutex;
     std::fstream file_stream;
+
 public:
-    logAppender(const str & file_name);
+    logAppender(const str &file_name);
     ~logAppender();
     void write(str &mesage);
 };
 
-logAppender::logAppender(const str & file_name)
-{
-    file_stream.open(file_name,std::ios::app|std::ios::out);
-}
 
-logAppender::~logAppender()
+//-----------------------------------------------------------------
+// class Log
+// {
+// private:
+//     std::map<LOG_LEVEL, str> loglevel_map{{INFO, "INFO"}, {DEBUG, "DEBUG"}, {WARNING, "WARNING"}, {ERROR, "ERROR"}, {FATAL, "FATAL"}};
+//     // std::list<logAppender> appender_list;
+//     logAppender *log_appender;
+// public:
+//     Log(const str & log_file_name);
+//     ~Log();
+//     void format_log(logEvent& log_event,LOG_LEVEL log_level,str &log_str);
+//     void write_log(logEvent &log_event, LOG_LEVEL log_level);
+
+// };
+
+// Log::Log(const str & log_file_name )
+// {
+//     log_appender = new logAppender(log_file_name);
+// }
+
+// Log::~Log()
+// {
+//     delete log_appender;
+// }
+
+class Logger
 {
-    file_stream.close();
-}
+private:
+    std::map<LOG_LEVEL, str> loglevel_map{{INFO, "INFO"}, {DEBUG, "DEBUG"}, {WARNING, "WARNING"}, {ERROR, "ERROR"}, {FATAL, "FATAL"}};
+    // std::list<logAppender> appender_list;
+    logAppender *log_appender;
+
+public:
+    Logger(const str &log_file_name);
+    ~Logger();
+    void format_log(logEvent &log_event, LOG_LEVEL log_level, str &log_str);
+    void write_log(logEvent &log_event, LOG_LEVEL log_level);
+};
+
+//接口函数,方便函数调用
+
+void write_log(Logger & log_obj,str message, LOG_LEVEL log_level);
 
 #endif

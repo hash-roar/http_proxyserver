@@ -40,5 +40,7 @@
 #include <sstream>
 #include <fstream>
 #include <vector>
+#include <unistd.h>
+#include <sys/syscall.h>
 #endif
 
