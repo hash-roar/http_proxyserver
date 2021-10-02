@@ -48,3 +48,11 @@ int get_one_line(int fd,char *buffer, int size)
 
     return (i);
 }
+
+std::string get_local_time()
+{
+    time_t t = time(0);
+    char temp[32]={NULL};
+    strftime(temp, sizeof(temp), "%Y-%m-%d %H:%M:%S",localtime(&t)); 
+    return temp;
+}

@@ -316,6 +316,7 @@ proxy::proxy(http_conn *to_front, client_conn *to_back)
 void proxy::response_header()
 {
     std::string first_line = to_back->response_info_obj.http_version+std::to_string(to_back->response_info_obj.status)+to_back->response_info_obj.status_text;
+    to_back->head_info["server"] = "bingyan/0.1.0";
     send_header(to_back->head_info,first_line);
 }
 void proxy::send_header(std::map<std::string, std::string> &header, std::string &first_line)
