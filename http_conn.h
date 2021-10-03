@@ -171,17 +171,29 @@ private:
     {
         while (!is_exit())
         {
+            std::this_thread::sleep_for(std::chrono::seconds(1));
             std::cout << "this test" << std::endl;
         }
     }
 
 public:
-    test_thread(/* args */){
+    test_thread(bool is_deta){
 
     };
     ~test_thread(){
 
     };
+};
+
+class server_thread : public thread_base
+{
+private:
+    void Main() override;
+    server_config config;
+
+public:
+    server_thread(const server_config &config_obj) : config(config_obj){};
+    ~server_thread();
 };
 
 //---------------------------------------------------------------->
@@ -190,17 +202,18 @@ class http_config
 {
 private:
     /* data */
-    std::string root;
-    std::string index;
-    std::string proxy_pass;
-    std::string proxy_set_header;
-    std::map<std::string,std::string> config_map;
+    std::string root = "./wwwroot";
+    std::string index = "index.html";
+    std::string proxy_pass = "";
+    std::string proxy_set_header = "";
+    std::map<std::string, std::string> config_map;
+
 public:
     http_config(/* args */);
-    void set_root(std::string rt){root = rt;}
-    void set_index(std::string inde){index = inde;}
-    void set_proxy_pass(std::string pro_pa){proxy_pass = pro_pa;}
-    void set_proxy_set_header(std::string pro_set_he){proxy_set_header = pro_set_he;}
+    void set_root(std::string rt) { root = rt; }
+    void set_index(std::string inde) { index = inde; }
+    void set_proxy_pass(std::string pro_pa) { proxy_pass = pro_pa; }
+    void set_proxy_set_header(std::string pro_set_he) { proxy_set_header = pro_set_he; }
     ~http_config();
 };
 
@@ -209,8 +222,8 @@ class server_config
 private:
     std::string listen;
     std::string server_name;
-    std::string access_log = "/home/zlf/c++/logs/access_logs.txt";
-    std::string error_log = "/home/zlf/c++/logs/error_logs.txt";
+    std::string access_log = "./logs/access_logs.txt";
+    std::string error_log = "./logs/error_logs.txt";
     std::map<std::string, http_config> httpconfig_lsit;
 
 public:
@@ -236,5 +249,6 @@ private:
 public:
     Config(std::string conf_path);
     void parse_config(std::string conf_path);
+    const std::map<std::string, server_config> &get_server_list() { return server_list; };
     ~Config();
 };

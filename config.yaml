@@ -10,3 +10,7 @@ http:
              url: /api
              root: /home/zlf/c++/proxy_server/wwwroot
              index: index.html
+  - server:
+      listen: 8999
+      server_name: bingyan/0.1.0
+      error_log: /home/zlf/c++

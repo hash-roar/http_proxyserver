@@ -348,6 +348,14 @@ void proxy::forward_data()
 proxy::~proxy()
 {
 }
+//-------------------------------------------------------------------->
+server_thread::server_thread(/* args */)
+{
+}
+
+server_thread::~server_thread()
+{
+}
 
 //---------------------------------------------------------------------------->
 //配置文件解析类实现
@@ -364,9 +372,10 @@ void Config::parse_config(std::string conf_path)
 {
     YAML::Node config = YAML::LoadFile(conf_path);
     YAML::Node http = config["http"];
-    for (auto item : http)
+    for (auto item1 : http)
     {
-        std::string listen = item["listen"].as<std::string>();
+        auto item = item1["server"];
+        std::string listen = std::to_string(item["listen"].as<int>());
         std::string server_name = item["server_name"].as<std::string>();
         server_config server_config_obj(listen, server_name);
         if (item["error_log"])
@@ -380,8 +389,9 @@ void Config::parse_config(std::string conf_path)
             server_config_obj.set_access_log(access_log);
         }
         YAML::Node locations = item["locations"];
-        for (auto node : locations)
+        for (auto node1 : locations)
         {
+            auto node = node1["location"];
             http_config http_config_obj;
             if (node["root"])
             {
