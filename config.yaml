@@ -3,7 +3,7 @@ http:
       listen: 80
       server_name: localhost
       error_log: /home/zlf/c++/logs/error_logs.txt
-      accees_log: /home/zlf/c++/logs/acees_logs.txt
+      access_log: /home/zlf/c++/logs/access_logs.txt
 
       locations: 
          - location:

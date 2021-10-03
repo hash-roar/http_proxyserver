@@ -1,8 +1,7 @@
 #ifndef HEAD_FILES_H
 #define HEAD_FILES_H
 
-using str = std::string;
-
+#include <yaml-cpp/yaml.h>
 #include <stdio.h>
 #include <utime.h>
 #include <string.h>
@@ -46,4 +45,3 @@ using str = std::string;
 #include <sys/syscall.h>
 #include <thread>
 #endif
-

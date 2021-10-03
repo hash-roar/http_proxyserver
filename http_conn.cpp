@@ -234,7 +234,6 @@ void http_conn::send_header(std::map<std::string, std::string> &header, std::str
 
 client_conn::client_conn(std::string host1, int port1) : host(host1), port(port1)
 {
-    
 }
 
 client_conn::~client_conn()
@@ -268,14 +267,15 @@ int client_conn::init_connect()
 // }
 std::string client_conn::get_header()
 {
-    char buffer[1024]={0};
+    char buffer[1024] = {0};
     std::string temp;
     std::string header;
-    do{
-        get_one_line(fd,buffer,sizeof(buffer));
-        header+=buffer;
+    do
+    {
+        get_one_line(fd, buffer, sizeof(buffer));
+        header += buffer;
         temp = buffer;
-    }while(temp!="\n");
+    } while (temp != "\n");
     parse_header(header);
 }
 void client_conn::parse_header(const std::string &head_str)
@@ -288,8 +288,8 @@ void client_conn::parse_header(const std::string &head_str)
     //解析第一行
     head_first_line_infos = split_string(head_first_line, ' ');
     response_info_obj.http_version = head_first_line_infos[0];
-    size_t * pp = (size_t *)malloc(sizeof(size_t));
-    response_info_obj.status = std::stoi(head_first_line_infos[1],pp,10);
+    size_t *pp = (size_t *)malloc(sizeof(size_t));
+    response_info_obj.status = std::stoi(head_first_line_infos[1], pp, 10);
     response_info_obj.status_text = head_first_line_infos[2];
     //解析剩下所有,放入map中
     std::string head;
@@ -316,9 +316,9 @@ proxy::proxy(http_conn *to_front, client_conn *to_back)
 
 void proxy::response_header()
 {
-    std::string first_line = to_back->response_info_obj.http_version+std::to_string(to_back->response_info_obj.status)+to_back->response_info_obj.status_text;
+    std::string first_line = to_back->response_info_obj.http_version + std::to_string(to_back->response_info_obj.status) + to_back->response_info_obj.status_text;
     to_back->head_info["server"] = "bingyan/0.1.0";
-    send_header(to_back->head_info,first_line);
+    send_header(to_back->head_info, first_line);
 }
 void proxy::send_header(std::map<std::string, std::string> &header, std::string &first_line)
 {
@@ -336,21 +336,105 @@ void proxy::forward_data()
     char buffer[4096];
     while (true)
     {
-        int length = recv(to_back->get_fd(),buffer,sizeof(buffer),0);
-        if (length==0)
+        int length = recv(to_back->get_fd(), buffer, sizeof(buffer), 0);
+        if (length == 0)
         {
-            out("服务端断开连接")
-            break;
+            out("服务端断开连接") break;
         }
-        send(to_front->get_fd(),buffer,length,0);
+        send(to_front->get_fd(), buffer, length, 0);
     }
-    
 }
 
 proxy::~proxy()
 {
 }
 
-
 //---------------------------------------------------------------------------->
 //配置文件解析类实现
+
+Config::Config(std::string conf_path)
+{
+    parse_config(conf_path);
+}
+
+Config::~Config()
+{
+}
+void Config::parse_config(std::string conf_path)
+{
+    YAML::Node config = YAML::LoadFile(conf_path);
+    YAML::Node http = config["http"];
+    for (auto item : http)
+    {
+        std::string listen = item["listen"].as<std::string>();
+        std::string server_name = item["server_name"].as<std::string>();
+        server_config server_config_obj(listen, server_name);
+        if (item["error_log"])
+        {
+            std::string error_log = item["error_log"].as<std::string>();
+            server_config_obj.set_error_log(error_log);
+        }
+        if (item["access_log"])
+        {
+            std::string access_log = item["access_log"].as<std::string>();
+            server_config_obj.set_access_log(access_log);
+        }
+        YAML::Node locations = item["locations"];
+        for (auto node : locations)
+        {
+            http_config http_config_obj;
+            if (node["root"])
+            {
+                http_config_obj.set_root(node["root"].as<std::string>());
+            }
+            if (node["index"])
+            {
+                http_config_obj.set_index(node["index"].as<std::string>());
+            }
+            if (node["proxy_pass"])
+            {
+                http_config_obj.set_proxy_pass(node["proxy_pass"].as<std::string>());
+            }
+            if (node["proxy_set_header"])
+            {
+                http_config_obj.set_proxy_set_header(node["proxy_set_header"].as<std::string>());
+            }
+            // for(auto key :node)
+            // {
+
+            // }
+            server_config_obj.add_http_config(node["url"].as<std::string>(), http_config_obj);
+        }
+        server_list.insert(std::make_pair(server_name, server_config_obj));
+    }
+}
+
+server_config::~server_config()
+{
+}
+
+void server_config::add_http_config(std::string url, const http_config &ht_conf)
+{
+    httpconfig_lsit.insert(std::make_pair(url, ht_conf));
+}
+
+bool server_config::url_route(std::string url, http_config &htt_conf)
+{
+    for (auto item : httpconfig_lsit)
+    {
+        if (url.find(item.first) != std::string::npos)
+        {
+            htt_conf = item.second;
+            return true;
+        }
+    }
+    return false;
+}
+
+http_config::http_config(/* args */)
+{
+}
+
+http_config::~http_config()
+{
+}
