@@ -1,6 +1,7 @@
 #ifndef HEAD_FILES_H
 #define HEAD_FILES_H
 
+#include <yaml-cpp/yaml.h>
 #include <stdio.h>
 #include <utime.h>
 #include <string.h>
@@ -38,6 +39,9 @@
 #include <algorithm>
 #include <map>
 #include <sstream>
+#include <fstream>
 #include <vector>
+#include <unistd.h>
+#include <sys/syscall.h>
+#include <thread>
 #endif
-
