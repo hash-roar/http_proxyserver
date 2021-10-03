@@ -84,6 +84,7 @@ void http_conn::parse_header(const std::string &head_str)
     std::istringstream head_steam(head_str.c_str());
     std::string head_first_line;
     std::getline(head_steam, head_first_line);
+    head_line = head_first_line;
     std::vector<std::string> head_first_line_infos;
     //解析第一行
     head_first_line_infos = split_string(head_first_line, ' ');
@@ -155,7 +156,6 @@ void http_conn::send_file(std::string file_path)
 {
     struct stat st;
     char buf[1024] = {0};
-    std::cout << file_path << std::endl;
     if (stat(file_path.c_str(), &st) == -1)
     {
         server_error();
@@ -234,6 +234,7 @@ void http_conn::send_header(std::map<std::string, std::string> &header, std::str
 
 client_conn::client_conn(std::string host1, int port1) : host(host1), port(port1)
 {
+    
 }
 
 client_conn::~client_conn()
@@ -349,3 +350,7 @@ void proxy::forward_data()
 proxy::~proxy()
 {
 }
+
+
+//---------------------------------------------------------------------------->
+//配置文件解析类实现

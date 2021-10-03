@@ -44,6 +44,7 @@ public:
     socklen_t addrlen = sizeof(struct sockaddr);
     static std::string wwwroot_path;
     http_info http_info_obj;
+    std::string head_line;
 
 private:
     std::map<std::string, std::string> header_info;
@@ -128,3 +129,123 @@ public:
     void forward_data();
     void send_header(std::map<std::string, std::string> &header, std::string &first_line);
 };
+
+//----------------------------------------------------------->
+class thread_base
+{
+private:
+    virtual void Main() = 0;
+    std::thread thread_;
+    bool is_exit_;
+    bool is_detach_;
+
+public:
+    thread_base(bool is_detach = false) : is_detach_(is_detach)
+    {
+    }
+    ~thread_base(){};
+
+public:
+    virtual void start()
+    {
+        is_exit_ = false;
+        thread_ = std::thread(&thread_base::Main, this);
+    }
+    virtual void stop()
+    {
+        is_exit_ = true;
+        wait();
+    }
+    virtual void wait()
+    {
+        if (thread_.joinable())
+            thread_.join();
+    }
+    bool is_exit() { return is_exit_; }
+};
+
+class test_thread : public thread_base
+{
+private:
+    void Main() override
+    {
+        while (!is_exit())
+        {
+            std::cout << "this test" << std::endl;
+        }
+    }
+
+public:
+    test_thread(/* args */){
+
+    };
+    ~test_thread(){
+
+    };
+};
+
+//---------------------------------------------------------------->
+//加载配置及解析配置
+class Config
+{
+private:
+    /* data */
+public:
+    Config(/* args */);
+    ~Config();
+};
+
+Config::Config(/* args */)
+{
+}
+
+Config::~Config()
+{
+}
+
+class server_config
+{
+private:
+    std::string listen;
+    std::string server_name;
+    std::string acceess_log;
+    std::string error_log;
+    std::map<std::string,http_config*> httpconfig_lsit;
+
+public:
+    server_config(std::string ls,std::string se_nam,std::string a_lg,std::string e_lg)
+    :listen(ls),server_name(se_nam),acceess_log(a_lg),error_log(e_lg) {
+
+    }
+    void add_http_config();
+    ~server_config();
+};
+
+server_config::~server_config()
+{
+    for (auto item : httpconfig_lsit)
+    {
+        delete item.second;
+    }
+}
+
+class http_config
+{
+private:
+    /* data */
+    std::string root;
+    std::string index;
+    std::string proxy_pass;
+    std::string proxy_set_header;
+public:
+    http_config(/* args */);
+    ~http_config();
+};
+
+http_config::http_config(/* args */)
+{
+}
+
+http_config::~http_config()
+{
+}

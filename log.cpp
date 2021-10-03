@@ -33,6 +33,10 @@ logEvent::~logEvent()
 logAppender::logAppender(const str &file_name)
 {
     file_stream.open(file_name, std::ios::app | std::ios::out);
+    if (!file_stream.is_open())
+    {
+        std::cout<<"open log file error"<<std::endl;
+    }
 }
 
 logAppender::~logAppender()
@@ -42,8 +46,7 @@ logAppender::~logAppender()
 void logAppender::write(str &meaasge)
 {
     pthread_mutex_lock(&file_mutex);
-    file_stream.write(meaasge.c_str(), meaasge.size());
-    file_stream << "\n";
+    file_stream<<meaasge<<std::endl;
     pthread_mutex_unlock(&file_mutex);
 }
 //---------------------------------------------->
@@ -124,3 +127,4 @@ void write_log(Logger &log_obj, str message, LOG_LEVEL log_level)
     }
 }
 //---------------------------------------------------->
+

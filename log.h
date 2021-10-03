@@ -40,7 +40,7 @@ class logAppender
 private:
     /* data */
     pthread_mutex_t file_mutex;
-    std::fstream file_stream;
+    std::ofstream file_stream;
 
 public:
     logAppender(const str &file_name);
@@ -50,29 +50,6 @@ public:
 
 
 //-----------------------------------------------------------------
-// class Log
-// {
-// private:
-//     std::map<LOG_LEVEL, str> loglevel_map{{INFO, "INFO"}, {DEBUG, "DEBUG"}, {WARNING, "WARNING"}, {ERROR, "ERROR"}, {FATAL, "FATAL"}};
-//     // std::list<logAppender> appender_list;
-//     logAppender *log_appender;
-// public:
-//     Log(const str & log_file_name);
-//     ~Log();
-//     void format_log(logEvent& log_event,LOG_LEVEL log_level,str &log_str);
-//     void write_log(logEvent &log_event, LOG_LEVEL log_level);
-
-// };
-
-// Log::Log(const str & log_file_name )
-// {
-//     log_appender = new logAppender(log_file_name);
-// }
-
-// Log::~Log()
-// {
-//     delete log_appender;
-// }
 
 class Logger
 {

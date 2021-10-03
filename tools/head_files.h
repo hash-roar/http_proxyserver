@@ -1,6 +1,8 @@
 #ifndef HEAD_FILES_H
 #define HEAD_FILES_H
 
+using str = std::string;
+
 #include <stdio.h>
 #include <utime.h>
 #include <string.h>
@@ -42,5 +44,6 @@
 #include <vector>
 #include <unistd.h>
 #include <sys/syscall.h>
+#include <thread>
 #endif
 
