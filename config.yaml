@@ -1,0 +1,15 @@
+http: 
+  - server:
+      listen: 8999
+      server_name: localhost
+      error_log: ./logs/error_logs.txt
+      access_log: ./logs/access_logs.txt
+
+      locations: 
+         - location:
+             url: /api
+             root: ./wwwroot
+             index: index.html
+#   - server:
+#       listen: 8999
+#       server_name: bingyan/0.1.0

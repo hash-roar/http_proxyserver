@@ -1,21 +1,15 @@
-# server:server.o http_conn.o log.o tool.o
-# 	g++ server.o http_conn.o log.o tool.o  -lyaml-cpp -lpthread -L/usr/local/lib -I/usr/local/include  -g  -o server
+src=$(wildcard *.cpp)
 
-# serevr.o:server.cpp
-# 	g++ server.cpp -c -g
+obj=$(patsubst %.cpp, %.o, $(src))
+target=server
+CXXFLAGS=-g
 
-# http_conn.o:http_conn.cpp
-# 	g++ http_conn.cpp -c -g
+$(target):$(obj)
+	g++ -g $(obj)  -lyaml-cpp -lpthread -L/usr/local/lib -I/usr/local/include  -o $(target)
 
-# log.o:log.cpp
-# 	g++ log.cpp -c -g
+%.o:%.c
+	g++ -g $< -c 
 
-# tool.o:./tools/tool.cpp
-# 	g++ ./tools/tool.cpp -c -g
-
-
-server:server.cpp log.cpp ./tools/tool.cpp http_conn.cpp
-	g++ -g server.cpp log.cpp ./tools/tool.cpp http_conn.cpp -lyaml-cpp -lpthread -L/usr/local/lib -I/usr/local/include    -o server
-
+.PHONY:clean
 clean:
-	rm server 
+	rm $(target) $(obj)

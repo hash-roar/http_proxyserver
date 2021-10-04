@@ -1,13 +1,9 @@
 #ifndef LOG_H
 #define LOG_H
-#include "tool.h"
-#include <fstream>
-#include <syscall.h>
-#include <unistd.h>
 
+#include "tools/tool.h"
 using str = std::string;
 using mapType = std::map<std::string, std::string>;
-
 
 enum LOG_LEVEL
 {
@@ -82,6 +78,5 @@ public:
 //接口函数,方便函数调用
 
 void write_log(Logger &log_obj, str message, LOG_LEVEL log_level);
-
 
 #endif

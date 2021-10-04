@@ -1,6 +1,57 @@
 #include "./http_conn.h"
+// server ------------------------------------------->
 
-std::string http_conn::wwwroot_path = "/home/zlf/c++/newserver/wwwroot";
+server::server(int port, const char *ip)
+{
+    this->server_sock_init(port, ip);
+    this->port = port;
+}
+server::~server()
+{
+    close(fd);
+}
+
+void server::server_sock_init(int port, const char *ip)
+{
+    fd = socket(AF_INET, SOCK_STREAM, 0);
+
+    if (fd == -1)
+    {
+        perror("socket");
+        // echo_log("create socket error", ERROR);
+        exit(-1);
+    }
+
+    int reuse = 1;
+    setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(int));
+    saddr.sin_family = AF_INET;
+    saddr.sin_port = htons(port);
+    saddr.sin_addr.s_addr = INADDR_ANY;
+    int ret = bind(fd, (struct sockaddr *)&saddr, sizeof(saddr));
+    if (ret == -1)
+    {
+        perror("bind");
+        // echo_log("bind socket error", ERROR);
+        exit(-1);
+    }
+    ret = listen(fd, 100);
+    if (ret == -1)
+    {
+        perror("listen");
+        // echo_log("listen error", ERROR);
+        exit(-1);
+    }
+    return;
+}
+
+int server::get_fd()
+{
+    return fd;
+}
+
+//----------------------------------------------------------->
+
+std::string http_conn::wwwroot_path = "/home/zlf/c++/proxy_server/wwwroot";
 const std::map<std::string, std::string> http_conn::mime_types = {{"html", "text/html"}, {"txt", "text/plain"}, {"img", "image/jpeg"}, {"jpg", "image/jpeg"}, {"png", "image/jpeg"}};
 
 http_conn::http_conn()
@@ -179,20 +230,6 @@ void http_conn::send_header(std::map<std::string, std::string> &header, std::str
         send(fd, buffer, strlen(buffer), 0);
     }
 }
-
-std::string http_conn::get_host()
-{
-    std::string host = "";
-    if (header_info.find("host") != header_info.end())
-    {
-        host = header_info["host"];
-    }
-    if (header_info.find("Host") != header_info.end())
-    {
-        host = header_info["Host"];
-    }
-    return host;
-}
 //----------------------------------------------------------->
 
 client_conn::client_conn(std::string host1, int port1) : host(host1), port(port1)
@@ -302,12 +339,108 @@ void proxy::forward_data()
         int length = recv(to_back->get_fd(), buffer, sizeof(buffer), 0);
         if (length == 0)
         {
-            std::cout << "the server close the connection" << std::endl;
+            out("服务端断开连接") break;
         }
         send(to_front->get_fd(), buffer, length, 0);
     }
 }
 
 proxy::~proxy()
+{
+}
+//-------------------------------------------------------------------->
+// server_thread::server_thread(/* args */)
+// {
+// }
+
+//---------------------------------------------------------------------------->
+//配置文件解析类实现
+
+Config::Config(std::string conf_path)
+{
+    parse_config(conf_path);
+}
+
+Config::~Config()
+{
+}
+void Config::parse_config(std::string conf_path)
+{
+    YAML::Node config = YAML::LoadFile(conf_path);
+    YAML::Node http = config["http"];
+    for (auto item1 : http)
+    {
+        auto item = item1["server"];
+        std::string listen = std::to_string(item["listen"].as<int>());
+        std::string server_name = item["server_name"].as<std::string>();
+        server_config server_config_obj(listen, server_name);
+        if (item["error_log"])
+        {
+            std::string error_log = item["error_log"].as<std::string>();
+            server_config_obj.set_error_log(error_log);
+        }
+        if (item["access_log"])
+        {
+            std::string access_log = item["access_log"].as<std::string>();
+            server_config_obj.set_access_log(access_log);
+        }
+        YAML::Node locations = item["locations"];
+        for (auto node1 : locations)
+        {
+            auto node = node1["location"];
+            http_config http_config_obj;
+            if (node["root"])
+            {
+                http_config_obj.set_root(node["root"].as<std::string>());
+            }
+            if (node["index"])
+            {
+                http_config_obj.set_index(node["index"].as<std::string>());
+            }
+            if (node["proxy_pass"])
+            {
+                http_config_obj.set_proxy_pass(node["proxy_pass"].as<std::string>());
+            }
+            if (node["proxy_set_header"])
+            {
+                http_config_obj.set_proxy_set_header(node["proxy_set_header"].as<std::string>());
+            }
+            // for(auto key :node)
+            // {
+
+            // }
+            server_config_obj.add_http_config(node["url"].as<std::string>(), http_config_obj);
+        }
+        server_list.insert(std::make_pair(server_name, server_config_obj));
+    }
+}
+
+server_config::~server_config()
+{
+}
+
+void server_config::add_http_config(std::string url, const http_config &ht_conf)
+{
+    httpconfig_lsit.insert(std::make_pair(url, ht_conf));
+}
+
+bool server_config::url_route(std::string url, http_config &htt_conf)
+{
+    for (auto item : httpconfig_lsit)
+    {
+        if (url.find(item.first) != std::string::npos)
+        {
+            htt_conf = item.second;
+            return true;
+        }
+    }
+    return false;
+}
+
+http_config::http_config(/* args */)
+{
+}
+
+http_config::~http_config()
 {
 }

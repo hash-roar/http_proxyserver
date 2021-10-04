@@ -1,5 +1,4 @@
-#include "log.h"
-
+#include "./log.h"
 
 logEvent::logEvent(const str logMeaasge, LOG_LEVEL log_level)
 {
