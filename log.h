@@ -5,7 +5,6 @@
 using str = std::string;
 using mapType = std::map<std::string, std::string>;
 
-
 enum LOG_LEVEL
 {
     INFO = 0,
@@ -28,9 +27,9 @@ public:
     LOG_LEVEL level;
 
 public:
-    logEvent(const str &logMeaasge, LOG_LEVEL log_level);
-    logEvent(const str &logMeaasge, LOG_LEVEL log_level, int threadId, int processId);
-    logEvent(const str &logMeaasge, LOG_LEVEL log_level, int threadId, int processId, str file_name, str functionName, int lineNum);
+    logEvent(const str logMeaasge, LOG_LEVEL log_level);
+    logEvent(const str logMeaasge, LOG_LEVEL log_level, int threadId, int processId);
+    logEvent(const str logMeaasge, LOG_LEVEL log_level, int threadId, int processId, str file_name, str functionName, int lineNum);
     ~logEvent();
 };
 
@@ -48,7 +47,6 @@ public:
     void write(str &mesage);
 };
 
-
 //-----------------------------------------------------------------
 
 class Logger
@@ -56,17 +54,29 @@ class Logger
 private:
     std::map<LOG_LEVEL, str> loglevel_map{{INFO, "INFO"}, {DEBUG, "DEBUG"}, {WARNING, "WARNING"}, {ERROR, "ERROR"}, {FATAL, "FATAL"}};
     // std::list<logAppender> appender_list;
-    logAppender *log_appender;
-
+    std::map<std::string, logAppender *> pLog_appander_List;
+    
+    Logger();
 public:
-    Logger(const str &log_file_name);
-    ~Logger();
+    static Logger *log_obj_;
+public:
+    static Logger *get_log_obj()
+    {
+        if (log_obj_ == nullptr)
+        {
+            /* code */
+            log_obj_ = new Logger();
+        }
+        return log_obj_;
+    }
+    void add_logappender(std::string log_path);
     void format_log(logEvent &log_event, LOG_LEVEL log_level, str &log_str);
-    void write_log(logEvent &log_event, LOG_LEVEL log_level);
+    void write_log(logEvent &log_event, LOG_LEVEL log_level, std::string log_path);
+    ~Logger();
 };
 
 //接口函数,方便函数调用
 
-void write_log(Logger & log_obj,str message, LOG_LEVEL log_level);
+void write_log(Logger &log_obj, str message, LOG_LEVEL log_level);
 
 #endif

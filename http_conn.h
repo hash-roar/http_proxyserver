@@ -3,6 +3,122 @@
 using mapType = std::map<std::string, std::string>;
 #define out(x) std::cout << x << std::endl;
 
+//---------------------------------------------------------------->
+//加载配置及解析配置
+class http_config
+{
+private:
+    /* data */
+    std::string root = "./wwwroot";
+    std::string index = "index.html";
+    std::string proxy_pass = "";
+    std::string proxy_set_header = "";
+    std::map<std::string, std::string> config_map;
+
+public:
+    http_config(/* args */);
+    void set_root(std::string rt) { root = rt; }
+    void set_index(std::string inde) { index = inde; }
+    void set_proxy_pass(std::string pro_pa) { proxy_pass = pro_pa; }
+    void set_proxy_set_header(std::string pro_set_he) { proxy_set_header = pro_set_he; }
+    ~http_config();
+};
+
+class server_config
+{
+private:
+    std::string listen;
+    std::string server_name;
+    std::string access_log = "./logs/access_logs.txt";
+    std::string error_log = "./logs/error_logs.txt";
+    std::map<std::string, http_config> httpconfig_lsit;
+
+public:
+    // server_config(std::string ls, std::string se_nam, std::string a_lg = "/home/zlf/c++/logs/acees_logs.txt", std::string e_lg = "/home/zlf/c++/logs/error_logs.txt")
+    //     : listen(ls), server_name(se_nam), acceess_log(a_lg), error_log(e_lg)
+    // {
+    // }
+    server_config(std::string ls, std::string se_nam) : listen(ls), server_name(se_nam)
+    {
+    }
+    void set_access_log(std::string acc_log) { access_log = acc_log; }
+    void set_error_log(std::string err_log) { err_log = err_log; }
+    void add_http_config(std::string url, const http_config &ht_conf);
+    bool url_route(std::string url, http_config &htt_conf);
+    std::string get_server_name() { return server_name; }
+    std::string get_listen_port() { return listen; }
+    std::string get_access_log() { return access_log; }
+    std::string get_error_log() { return error_log; }
+    ~server_config();
+};
+
+class Config
+{
+private:
+    std::map<std::string, server_config> server_list;
+
+public:
+    Config(std::string conf_path);
+    void parse_config(std::string conf_path);
+    const std::map<std::string, server_config> &get_server_list() { return server_list; };
+    ~Config();
+};
+//------------------------------------------------------------------->
+
+class thread_base
+{
+private:
+    virtual void Main() = 0;
+    std::thread thread_;
+    bool is_exit_;
+    bool is_detach_;
+
+public:
+    thread_base(bool is_detach = false) : is_detach_(is_detach)
+    {
+    }
+    ~thread_base(){};
+
+public:
+    virtual void start()
+    {
+        is_exit_ = false;
+        thread_ = std::thread(&thread_base::Main, this);
+    }
+    virtual void stop()
+    {
+        is_exit_ = true;
+        wait();
+    }
+    virtual void wait()
+    {
+        if (thread_.joinable())
+            thread_.join();
+    }
+    bool is_exit() { return is_exit_; }
+};
+
+class test_thread : public thread_base
+{
+private:
+    void Main() override
+    {
+        while (!is_exit())
+        {
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+            std::cout << "this test" << std::endl;
+        }
+    }
+
+public:
+    test_thread(bool is_deta = false){
+
+    };
+    ~test_thread(){
+
+    };
+};
+
 class server
 {
 private:
@@ -61,7 +177,7 @@ public:
     }
 
 public:
-    void handle_request();
+    bool handle_request();
     void bad_request();
     void error_print(const char *mess);
     void exc_cgi();
@@ -131,124 +247,3 @@ public:
 };
 
 //----------------------------------------------------------->
-class thread_base
-{
-private:
-    virtual void Main() = 0;
-    std::thread thread_;
-    bool is_exit_;
-    bool is_detach_;
-
-public:
-    thread_base(bool is_detach = false) : is_detach_(is_detach)
-    {
-    }
-    ~thread_base(){};
-
-public:
-    virtual void start()
-    {
-        is_exit_ = false;
-        thread_ = std::thread(&thread_base::Main, this);
-    }
-    virtual void stop()
-    {
-        is_exit_ = true;
-        wait();
-    }
-    virtual void wait()
-    {
-        if (thread_.joinable())
-            thread_.join();
-    }
-    bool is_exit() { return is_exit_; }
-};
-
-class test_thread : public thread_base
-{
-private:
-    void Main() override
-    {
-        while (!is_exit())
-        {
-            std::this_thread::sleep_for(std::chrono::seconds(1));
-            std::cout << "this test" << std::endl;
-        }
-    }
-
-public:
-    test_thread(bool is_deta){
-
-    };
-    ~test_thread(){
-
-    };
-};
-
-class server_thread : public thread_base
-{
-private:
-    void Main() override;
-    server_config config;
-
-public:
-    server_thread(const server_config &config_obj) : config(config_obj){};
-    ~server_thread();
-};
-
-//---------------------------------------------------------------->
-//加载配置及解析配置
-class http_config
-{
-private:
-    /* data */
-    std::string root = "./wwwroot";
-    std::string index = "index.html";
-    std::string proxy_pass = "";
-    std::string proxy_set_header = "";
-    std::map<std::string, std::string> config_map;
-
-public:
-    http_config(/* args */);
-    void set_root(std::string rt) { root = rt; }
-    void set_index(std::string inde) { index = inde; }
-    void set_proxy_pass(std::string pro_pa) { proxy_pass = pro_pa; }
-    void set_proxy_set_header(std::string pro_set_he) { proxy_set_header = pro_set_he; }
-    ~http_config();
-};
-
-class server_config
-{
-private:
-    std::string listen;
-    std::string server_name;
-    std::string access_log = "./logs/access_logs.txt";
-    std::string error_log = "./logs/error_logs.txt";
-    std::map<std::string, http_config> httpconfig_lsit;
-
-public:
-    // server_config(std::string ls, std::string se_nam, std::string a_lg = "/home/zlf/c++/logs/acees_logs.txt", std::string e_lg = "/home/zlf/c++/logs/error_logs.txt")
-    //     : listen(ls), server_name(se_nam), acceess_log(a_lg), error_log(e_lg)
-    // {
-    // }
-    server_config(std::string ls, std::string se_nam) : listen(ls), server_name(se_nam)
-    {
-    }
-    void set_access_log(std::string acc_log) { access_log = acc_log; }
-    void set_error_log(std::string err_log) { err_log = err_log; }
-    void add_http_config(std::string url, const http_config &ht_conf);
-    bool url_route(std::string url, http_config &htt_conf);
-    ~server_config();
-};
-
-class Config
-{
-private:
-    std::map<std::string, server_config> server_list;
-
-public:
-    Config(std::string conf_path);
-    void parse_config(std::string conf_path);
-    const std::map<std::string, server_config> &get_server_list() { return server_list; };
-    ~Config();
-};

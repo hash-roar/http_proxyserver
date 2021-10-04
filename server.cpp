@@ -1,7 +1,62 @@
-#include "./http_conn.h"
 #include "./log.h"
+#include "./http_conn.h"
+#include "unistd.h"
+Logger *Logger::log_obj_ = nullptr;
+class server_thread : public thread_base
+{
+private:
+    void Main() override;
+    server_config config;
+    Logger *plogger;
 
-Logger log_obj("./logs/log.txt");
+public:
+    server_thread(const server_config &config_obj, bool is_deta = false) : config(config_obj), thread_base(is_deta) { server_init(); }
+    void server_init();
+    ~server_thread();
+};
+
+void server_thread::Main()
+{
+    server server_obj(std::stoi(config.get_listen_port()));
+    while (!is_exit())
+    {
+        http_conn http_obj;
+        logEvent log_event("this is for test", INFO);
+        plogger->write_log(log_event, INFO, config.get_access_log());
+        http_obj.fd = accept(server_obj.get_fd(), (struct sockaddr *)&http_obj.saddr, &http_obj.addrlen);
+        if (http_obj.fd == -1)
+        {
+            perror("accept");
+            // log_obj.log_write("accept error",ERROR);
+            exit(-1);
+        }
+        if (!http_obj.handle_request()) //当接收到的请求不是get请求时,写入日志.由not impleted方法处理
+        {
+            logEvent log_event("非GET方法访问", WARNING, 0, getpid());
+            plogger->write_log(log_event, WARNING, config.get_error_log());
+            continue;
+        }
+        //进行路由
+        http_config last_config;
+        if (config.url_route(http_obj.http_info_obj.uri,last_config)) //对路由进行匹配
+        {
+            /* code */
+        }
+        else{
+            http_obj.resolve_get();
+        }
+        
+    }
+}
+void server_thread::server_init()
+{
+    plogger = Logger::get_log_obj();
+    plogger->add_logappender(config.get_access_log());
+    plogger->add_logappender(config.get_error_log());
+}
+server_thread::~server_thread()
+{
+}
 
 int main()
 {
@@ -11,9 +66,13 @@ int main()
 
     //2
     //开启控制进程和工作线程(屏蔽sigpipe信号,初始化服务器套接字)
-    test_thread thread1;
-    thread1.start();
-    thread1.wait();
+    for (auto item : main_config.get_server_list())
+    {
+        server_thread thread(item.second);
+        thread.start();
+        thread.wait();
+    }
+    std::this_thread::sleep_for(std::chrono::seconds(4));
     //3
     //进程进入主循环,开启等待连接
 

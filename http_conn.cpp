@@ -63,7 +63,7 @@ http_conn::~http_conn()
     close(fd);
 }
 
-void http_conn::handle_request()
+bool http_conn::handle_request()
 {
     char buffer[4096];
     bzero(buffer, sizeof(buffer));
@@ -72,10 +72,10 @@ void http_conn::handle_request()
     if (http_info_obj.mehtod != "GET")
     {
         not_implemented();
-        return;
+        return false;
     }
+    return true;
     //路由模块
-    resolve_get();
 }
 
 void http_conn::parse_header(const std::string &head_str)
@@ -349,13 +349,9 @@ proxy::~proxy()
 {
 }
 //-------------------------------------------------------------------->
-server_thread::server_thread(/* args */)
-{
-}
-
-server_thread::~server_thread()
-{
-}
+// server_thread::server_thread(/* args */)
+// {
+// }
 
 //---------------------------------------------------------------------------->
 //配置文件解析类实现

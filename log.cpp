@@ -1,12 +1,12 @@
 #include "./log.h"
 
-logEvent::logEvent(const str &logMeaasge, LOG_LEVEL log_level)
+logEvent::logEvent(const str logMeaasge, LOG_LEVEL log_level)
 {
     this->log_meaasge = logMeaasge;
     this->level = log_level;
     this->time = get_local_time();
 }
-logEvent::logEvent(const str &logMeaasge, LOG_LEVEL log_level, int threadId, int processId)
+logEvent::logEvent(const str logMeaasge, LOG_LEVEL log_level, int threadId, int processId)
 {
     this->log_meaasge = logMeaasge;
     this->level = log_level;
@@ -14,7 +14,7 @@ logEvent::logEvent(const str &logMeaasge, LOG_LEVEL log_level, int threadId, int
     this->thread_id = threadId;
     this->time = get_local_time();
 }
-logEvent::logEvent(const str &logMeaasge, LOG_LEVEL log_level, int threadId, int processId, str fileName, str functionName, int lineNum)
+logEvent::logEvent(const str logMeaasge, LOG_LEVEL log_level, int threadId, int processId, str fileName, str functionName, int lineNum)
 {
     this->log_meaasge = logMeaasge;
     this->level = log_level;
@@ -35,7 +35,7 @@ logAppender::logAppender(const str &file_name)
     file_stream.open(file_name, std::ios::app | std::ios::out);
     if (!file_stream.is_open())
     {
-        std::cout<<"open log file error"<<std::endl;
+        std::cout << "open log file error" << std::endl;
     }
 }
 
@@ -46,20 +46,27 @@ logAppender::~logAppender()
 void logAppender::write(str &meaasge)
 {
     pthread_mutex_lock(&file_mutex);
-    file_stream<<meaasge<<std::endl;
+    file_stream << meaasge << std::endl;
     pthread_mutex_unlock(&file_mutex);
 }
 //---------------------------------------------->
 
-Logger::Logger(const str &log_file_name)
+Logger::Logger()
 {
-    log_appender = new logAppender(log_file_name);
 }
 
 Logger::~Logger()
 {
-    delete log_appender;
 }
+
+void Logger::add_logappender(std::string log_path)
+{
+    if (pLog_appander_List.find(log_path) == pLog_appander_List.end())
+    {
+        pLog_appander_List.emplace(std::make_pair(log_path, new logAppender(log_path)));
+    }
+}
+
 void Logger::format_log(logEvent &log_event, LOG_LEVEL log_level, str &log_str)
 {
     char buffer[512];
@@ -92,39 +99,46 @@ void Logger::format_log(logEvent &log_event, LOG_LEVEL log_level, str &log_str)
     log_str = buffer;
 }
 
-void Logger::write_log(logEvent &log_event, LOG_LEVEL log_level)
+void Logger::write_log(logEvent &log_event, LOG_LEVEL log_level, std::string log_path)
 {
     str message;
     format_log(log_event, log_level, message);
     message += log_event.log_meaasge;
-    log_appender->write(message);
+    if(pLog_appander_List.find(log_path)==pLog_appander_List.end())
+    {
+        std::cout<<"log file error,error here: "<<__func__<<__LINE__<<std::endl;
+        return ;
+    }
+    
+    pLog_appander_List[log_path]->write(message);
 }
 
-void write_log(Logger &log_obj, str message, LOG_LEVEL log_level)
+
+//暴露出的写日志接口,日志类改为单例模式后更改后基本没用了
+void write_log(Logger &log_obj, str message, LOG_LEVEL log_level, std::string log_path)
 {
     switch (log_level)
     {
     case INFO:
     case DEBUG:
     {
-        logEvent event(message,WARNING);
-        return log_obj.write_log(event, INFO);
+        logEvent event(message, WARNING);
+        return log_obj.write_log(event, INFO, log_path);
     }
     case WARNING:
     {
-        logEvent event(message,WARNING,getpid(),syscall(SYS_gettid));
-        return log_obj.write_log(event, WARNING);
+        logEvent event(message, WARNING, getpid(), syscall(SYS_gettid));
+        return log_obj.write_log(event, WARNING, log_path);
     }
     case ERROR:
     case FATAL:
         // const char *format3 = "[%s] [%s] [PID:%4d] [TID:%4d] [%-s] [%s:%4d]"; // [日志级别] [时间] [进程id] [线程id] [文件名] [函数名:行号]
         {
-            logEvent event(message,ERROR,getpid(),syscall(SYS_gettid),__FILE__,__func__,__LINE__);
-            return log_obj.write_log(event, ERROR);
+            logEvent event(message, ERROR, getpid(), syscall(SYS_gettid), __FILE__, __func__, __LINE__);
+            return log_obj.write_log(event, ERROR, log_path);
         }
     default:
         break;
     }
 }
 //---------------------------------------------------->
-
