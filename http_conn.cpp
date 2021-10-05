@@ -26,6 +26,106 @@ bool http_conn::handle_request()
     return true;
     //路由模块
 }
+void http_conn::handle_route()
+{
+    if (self_config.get_proxy_pass() == "")
+    {
+        resolve_get();
+    }
+    else
+    {
+        deb1("正在处理代理转发信息")
+            handle_proxy();
+    }
+}
+
+void http_conn::handle_proxy()
+{
+    std::string proxy_pass = self_config.get_proxy_pass();
+    std::string domain;
+    std::string port;
+    std::string proxy_pass_url = "/";
+    //解析域名及端口
+    auto pos = proxy_pass.find_first_of("//");
+    proxy_pass = proxy_pass.substr(pos + 2);
+    if (proxy_pass.find("/") != std::string::npos)
+    {
+        auto pos = proxy_pass.find_first_of("/");
+        proxy_pass_url = proxy_pass.substr(pos);
+        proxy_pass = proxy_pass.substr(0, pos);
+        deb1(proxy_pass << "    " << proxy_pass_url)
+    }
+    if (proxy_pass.find_last_of(":") == std::string::npos)
+    {
+        domain = proxy_pass;
+        port = "80";
+    }
+    else
+    {
+        auto pos = proxy_pass.find_last_of(":");
+        domain = proxy_pass.substr(0, pos);
+        port = proxy_pass.substr(pos + 1);
+    }
+    //开启与后端连接
+    deb1("正在建立到后端服务器连接")
+        client_conn client_obj(domain, std::stoi(port));
+    forward_all_data(client_obj, proxy_pass_url);
+}
+
+void http_conn::forward_all_data(client_conn &client_obj, std::string &proxy_pass_url)
+{
+    //发送请求头
+    char buffer[4096];
+    sprintf(buffer, "%s\r\n", (http_info_obj.mehtod + " " + proxy_pass_url + " " + http_info_obj.http_version).c_str());
+    send(client_obj.get_fd(), buffer, strlen(buffer), 0);
+    std::string key;
+    std::string value;
+    if (self_config.get_proxy_set_header() != "")
+    {
+        std::string set_header = self_config.get_proxy_set_header();
+        key = split_string(set_header, ' ')[0];
+        value = split_string(set_header, ' ')[1];
+    }
+    for (auto item : header_info)
+    {
+        if (item.first == key)
+        {
+            sprintf(buffer, "%s: %s\r\n", item.first.c_str(), value.c_str());
+            send(client_obj.get_fd(), buffer, strlen(buffer), 0);
+        }
+        else
+        {
+            sprintf(buffer, "%s: %s\r\n", item.first.c_str(), item.second.c_str());
+            send(client_obj.get_fd(), buffer, strlen(buffer), 0);
+        }
+    }
+    sprintf(buffer, "\r\n");
+    send(client_obj.get_fd(), buffer, strlen(buffer), 0);
+    //接受后端响应头
+    client_obj.get_header();
+    //发送响应头到前端
+    sprintf(buffer, "%s\r\n", client_obj.head_line.c_str());
+    send(fd, buffer, strlen(buffer), 0);
+
+    for (auto item : client_obj.head_info)
+    {
+        sprintf(buffer, "%s: %s\r\n", item.first.c_str(), item.second.c_str());
+        send(fd, buffer, strlen(buffer), 0);
+    }
+    sprintf(buffer, "\r\n");
+    send(fd, buffer, strlen(buffer), 0);
+    //接下来转发两个套接字所有数据
+    char buf[4096];
+    while (true)
+    {
+        int length = recv(client_obj.get_fd(), buffer, sizeof(buffer), 0);
+        if (length == 0)
+        {
+            deb1("后端服务器断开连接") break;
+        }
+        send(fd, buffer, length, 0);
+    }
+}
 
 void http_conn::parse_header(const std::string &head_str)
 {
@@ -55,7 +155,6 @@ void http_conn::parse_header(const std::string &head_str)
     //     std::cout<<"fisr:"<<kv.first<<"---last:"<<kv.second<<std::endl;
     // }
 }
-
 void http_conn::not_implemented()
 {
     char buf[1024];
@@ -76,15 +175,14 @@ void http_conn::not_implemented()
     sprintf(buf, "</BODY></HTML>\r\n");
     send(fd, buf, strlen(buf), 0);
 }
-
 void http_conn::resolve_get()
 {
-    std::string file_path = wwwroot_path + http_info_obj.uri;
+    std::string file_path = self_config.get_root() + http_info_obj.uri;
     char path_end = *(file_path.rbegin());
     std::string mime_type;
     if (path_end == '/')
     {
-        file_path += "index.html";
+        file_path += self_config.get_index();
     }
     struct stat st;
     if (stat(file_path.c_str(), &st) == -1)
@@ -98,9 +196,9 @@ void http_conn::resolve_get()
     mapType header{{"Server", "bingyan_server/0.1.0"}, {"Content-Type", mime_type.c_str()}};
     std::string first_line = "HTTP/1.0 200 OK";
     send_header(header, first_line);
+    deb1(file_path);
     send_file(file_path);
 }
-
 void http_conn::send_file(std::string file_path)
 {
     struct stat st;
@@ -128,7 +226,6 @@ void http_conn::send_file(std::string file_path)
         return;
     }
 }
-
 void http_conn::server_error()
 {
     char buf[1024] = {0};
@@ -149,11 +246,9 @@ void http_conn::fourOfour_error()
     send_header(header, head_first_line);
     send_file(wwwroot_path + "/404.html");
 }
-
 std::string http_conn::parse_mime_type(const std::string &file_path)
-
 {
-    auto pos = file_path.find('.');
+    auto pos = file_path.find_last_of(".");
     std::string suffix = file_path.substr(pos + 1, (file_path.size() - pos - 1));
     auto mime_type_ptr = http_conn::mime_types.find(suffix);
     std::string mime_type;
@@ -167,7 +262,6 @@ std::string http_conn::parse_mime_type(const std::string &file_path)
     }
     return mime_type;
 }
-
 void http_conn::send_header(std::map<std::string, std::string> &header, std::string &first_line)
 {
     char buffer[1024] = {0};
@@ -179,24 +273,29 @@ void http_conn::send_header(std::map<std::string, std::string> &header, std::str
         send(fd, buffer, strlen(buffer), 0);
     }
 }
-
-std::string http_conn::get_host()
+std::string http_conn::get_http_info(const std::string &key)
 {
-    std::string host = "";
-    if (header_info.find("host") != header_info.end())
+    std::string value = "";
+    if (header_info.find(key) != header_info.end())
     {
-        host = header_info["host"];
+        value = header_info[key];
     }
-    if (header_info.find("Host") != header_info.end())
-    {
-        host = header_info["Host"];
-    }
-    return host;
+    return value;
 }
 //----------------------------------------------------------->
 
-client_conn::client_conn(std::string host1, int port1) : host(host1), port(port1)
+client_conn::client_conn(std::string host1, int pt)
 {
+    host_str = host1;
+    port = pt;
+    if (init_connect() == -1)
+    {
+        deb1("与后端服务器连接失败")
+    }
+    else
+    {
+        deb1("与后端服务器连接成功")
+    }
 }
 
 client_conn::~client_conn()
@@ -213,14 +312,13 @@ int client_conn::init_connect()
     }
     saddr.sin_family = AF_INET;
     saddr.sin_port = htons(port);
-    inet_pton(AF_INET, host.c_str(), &saddr.sin_addr.s_addr);
+    inet_pton(AF_INET, host_str.c_str(), &saddr.sin_addr.s_addr);
     int ret = connect(fd, (struct sockaddr *)&saddr, sizeof(saddr));
     if (ret == -1)
     {
         perror("connet");
         return -1;
     }
-    std::cout << "与server连接成功" << std::endl;
     return 1;
 }
 
@@ -240,6 +338,7 @@ std::string client_conn::get_header()
         temp = buffer;
     } while (temp != "\n");
     parse_header(header);
+    return header;
 }
 void client_conn::parse_header(const std::string &head_str)
 {
@@ -247,6 +346,7 @@ void client_conn::parse_header(const std::string &head_str)
     std::istringstream head_steam(head_str.c_str());
     std::string head_first_line;
     std::getline(head_steam, head_first_line);
+    head_line = head_first_line;
     std::vector<std::string> head_first_line_infos;
     //解析第一行
     head_first_line_infos = split_string(head_first_line, ' ');

@@ -19,6 +19,10 @@ public:
     void set_index(std::string inde) { index = inde; }
     void set_proxy_pass(std::string pro_pa) { proxy_pass = pro_pa; }
     void set_proxy_set_header(std::string pro_set_he) { proxy_set_header = pro_set_he; }
+    std::string get_root(){return root;}
+    std::string get_index(){return index;}
+    std::string get_proxy_pass(){return proxy_pass;}
+    std::string get_proxy_set_header(){return proxy_set_header;}
     ~http_config();
 };
 

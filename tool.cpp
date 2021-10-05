@@ -56,3 +56,19 @@ std::string get_local_time()
     strftime(temp, sizeof(temp), "%Y-%m-%d %H:%M:%S",localtime(&t)); 
     return temp;
 }
+
+std::string get_ip_by_domain(std::string domain)
+{
+    struct hostent* host=nullptr;
+    host = gethostbyname(domain.c_str());
+    if (host==nullptr)
+    {
+        return "";
+    }
+    char ip[100];
+    unsigned char pLen;
+    inet_ntop(AF_INET6,host->h_addr,ip,pLen);
+    std::cout<<ip<<std::endl;
+    std::cout<<host->h_addr<<std::endl;
+    return ip;
+}

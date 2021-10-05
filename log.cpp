@@ -1,5 +1,6 @@
 #include "log.h"
 
+Logger *Logger::log_obj_ = nullptr;
 
 logEvent::logEvent(const str logMeaasge, LOG_LEVEL log_level)
 {
@@ -43,6 +44,7 @@ logAppender::logAppender(const str &file_name)
 logAppender::~logAppender()
 {
     file_stream.close();
+    pthread_mutex_destroy(&file_mutex);
 }
 void logAppender::write(str &meaasge)
 {
@@ -105,15 +107,14 @@ void Logger::write_log(logEvent &log_event, LOG_LEVEL log_level, std::string log
     str message;
     format_log(log_event, log_level, message);
     message += log_event.log_meaasge;
-    if(pLog_appander_List.find(log_path)==pLog_appander_List.end())
+    if (pLog_appander_List.find(log_path) == pLog_appander_List.end())
     {
-        std::cout<<"log file error,error here: "<<__func__<<__LINE__<<std::endl;
-        return ;
+        std::cout << "log file error,error here: " << __func__ << __LINE__ << std::endl;
+        return;
     }
-    
+
     pLog_appander_List[log_path]->write(message);
 }
-
 
 //暴露出的写日志接口,日志类改为单例模式后更改后基本没用了
 void write_log(Logger &log_obj, str message, LOG_LEVEL log_level, std::string log_path)

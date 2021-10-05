@@ -8,6 +8,46 @@
 #include <fcntl.h>
 #include <sys/sendfile.h>
 using mapType = std::map<std::string, std::string>;
+
+//-------------------------------------------------------------->
+//作为客户端连接的类
+typedef struct response_info
+{
+    std::string http_version;
+    int status;
+    std::string status_text;
+} response_info;
+
+class client_conn
+{
+private:
+    //套接字数据
+    int fd;
+    struct sockaddr_in saddr;
+    //连接数据
+    std::string host_str;
+    int port;
+
+public:
+    //http头数据
+    mapType head_info;
+    response_info response_info_obj;
+    std::string head_line;
+
+public:
+    client_conn(std::string host_str, int pt);
+    ~client_conn();
+    int init_connect();
+    int get_fd()
+    {
+        return fd;
+    }
+    // void send_request(char *buffer,int length);
+    std::string get_header();
+    void parse_header(const std::string &head_str);
+};
+//------------------------------------------------------------------------>
+
 typedef struct http_info
 {
     std::string mehtod;
@@ -27,9 +67,9 @@ public:
 
 private:
     std::map<std::string, std::string> header_info;
+    static const std::map<std::string, std::string> mime_types;
     int cgi_excu = 0;
     const int buffer_size = 10240;
-    static const std::map<std::string, std::string> mime_types;
     http_config self_config;
 
 public:
@@ -42,57 +82,29 @@ public:
 
 public:
     void set_self_config(http_config &config) { self_config = config; };
+    //根据配置处理请求
     bool handle_request();
-    void bad_request();
-    void error_print(const char *mess);
-    void exc_cgi();
-    void send_header(std::map<std::string, std::string> &header, std::string &first_line);
-    void fourOfour_error();
-    void send_server_file();
+    void handle_route();
+    void resolve_get();
+    void handle_proxy();
+    //为写日志创造的接口
+    std::string get_http_info(const std::string &key);
+
+private:
+    //解析
+    int get_one_line(char *buffer, int size);
     void parse_header(const std::string &s);
     std::string parse_mime_type(const std::string &file_path);
     void parse_mime_type(const std::string &url, std::string &mime_type);
-    int get_one_line(char *buffer, int size);
+    //响应错误
     void not_implemented();
-    void resolve_get();
-    void send_file(std::string file_path);
-    void excute_cgi_error();
+    void fourOfour_error();
     void server_error();
-    std::string get_host();
-};
-
-//-------------------------------------------------------------->
-//作为客户端连接的类
-typedef struct response_info
-{
-    std::string http_version;
-    int status;
-    std::string status_text;
-} response_info;
-
-class client_conn
-{
-private:
-    int fd;
-    std::string host;
-    int port;
-    struct sockaddr_in saddr;
-
-public:
-    mapType head_info;
-    response_info response_info_obj;
-
-public:
-    client_conn(std::string host, int port);
-    ~client_conn();
-    int init_connect();
-    int get_fd()
-    {
-        return fd;
-    }
-    // void send_request(char *buffer,int length);
-    std::string get_header();
-    void parse_header(const std::string &head_str);
+    //发送响应
+    void send_header(std::map<std::string, std::string> &header, std::string &first_line);
+    void send_file(std::string file_path);
+    //转发数据
+    void forward_all_data(client_conn &cilent_obj,std::string &proxy_pass_url);
 };
 
 //----------------------------------------------------------------------->
