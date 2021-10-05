@@ -138,7 +138,14 @@ void http_conn::parse_header(const std::string &head_str)
     //解析第一行
     head_first_line_infos = split_string(head_first_line, ' ');
     http_info_obj.mehtod = head_first_line_infos[0];
-    http_info_obj.uri = head_first_line_infos[1];
+    auto &url = head_first_line_infos[1];
+    if (url.find("?") != std::string::npos)
+    {
+        auto pos = url.find("?");
+        http_info_obj.uri = url.substr(0, pos);
+        query_string = url.substr(pos + 1);
+    }
+    http_info_obj.uri =url;
     http_info_obj.http_version = head_first_line_infos[2];
     //解析剩下所有,放入map中
     std::string head;

@@ -64,6 +64,7 @@ public:
     static std::string wwwroot_path;
     http_info http_info_obj;
     std::string head_line;
+    std::string query_string="";
 
 private:
     std::map<std::string, std::string> header_info;

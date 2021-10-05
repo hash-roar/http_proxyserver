@@ -9,7 +9,6 @@ http_config::~http_config()
 {
 }
 
-
 server_config::~server_config()
 {
 }
@@ -21,18 +20,70 @@ void server_config::add_http_config(std::string url, const http_config &ht_conf)
 
 bool server_config::url_route(std::string url, http_config &htt_conf)
 {
-    for (auto item : httpconfig_lsit)
+    //若有精准匹配,直接跳出
+    // 精确匹配 > 非正则匹配 >正则匹配 > 前缀匹配 > 通用匹配
+    std::vector<http_config *> Nregx_math_success;  //非正则匹配
+    std::vector<http_config *> iregx_math_success;  //正则匹配
+    std::vector<http_config *> Iregx_math_success;  //正则匹配
+    std::vector<http_config *> prefix_math_success; // 前缀匹配
+
+    for (auto &item : httpconfig_lsit)
     {
-        if (url.find(item.first) != std::string::npos)
+        auto &&rule_array = split_string(item.first, ' ');
+        if (rule_array.size() == 2) //有匹配规则
         {
-            htt_conf = item.second;
-            return true;
+            std::string rule = rule_array[0];
+            std::string config_url = rule_array[1];
+            if (rule == "=") //精确匹配
+            {
+                if (url == config_url)
+                {
+                    htt_conf = item.second;
+                    return;
+                }
+            }
+            if (rule == "^~") //非正则匹配
+            {
+                if (url.find_first_of(config_url) == 0) //匹配一个即停止
+                {
+                    if (!Nregx_math_success.empty())
+                    {
+                        Nregx_math_success.push_back(&item.second);
+                    }
+                }
+            }
+            if (rule == "~") //正则匹配,区分大小写
+            {
+                std::regex r(config_url);
+                if (std::regex_match(url, r))
+                {
+                    iregx_math_success.push_back(&item.second);
+                }
+            }
+            if (rule == "~*")
+            {
+                std::regex r(config_url, std::regex::icase);
+                if (std::regex_match(url, r))
+                {
+                    Iregx_math_success.push_back(&item.second);
+                }
+            }
+        }
+        else //没有匹配规则,前缀匹配
+        {
+            if (url.find_first_of(item.first) == 0) //匹配一个即停止
+            {
+                prefix_math_success.push_back(&item.second);
+            }
         }
     }
+    //没有完全匹配到,进行一般匹配
+
+    // std::vector<http_config> rout_configs; //储存所有匹配到的规则
+
+    //没有匹配到,通用匹配,直接返回错误
     return false;
 }
-
-
 
 Config::Config(std::string conf_path)
 {

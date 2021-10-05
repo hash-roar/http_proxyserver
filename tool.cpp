@@ -3,18 +3,18 @@
 std::vector<std::string> split_string(const std::string &str, const char pattern)
 {
     std::vector<std::string> res;
-    std::stringstream input(str);   //读取str到字符串流中
+    std::stringstream input(str); //读取str到字符串流中
     std::string temp;
     //使用getline函数从字符串流中读取,遇到分隔符时停止,和从cin中读取类似
     //注意,getline默认是可以读取空格的
-    while(std::getline(input, temp, pattern))
+    while (std::getline(input, temp, pattern))
     {
         res.push_back(temp);
     }
     return res;
 }
 
-int get_one_line(int fd,char *buffer, int size)
+int get_one_line(int fd, char *buffer, int size)
 {
     int i = 0;
     char c = '\0';
@@ -52,23 +52,18 @@ int get_one_line(int fd,char *buffer, int size)
 std::string get_local_time()
 {
     time_t t = time(0);
-    char temp[32]={0};
-    strftime(temp, sizeof(temp), "%Y-%m-%d %H:%M:%S",localtime(&t)); 
+    char temp[32] = {0};
+    strftime(temp, sizeof(temp), "%Y-%m-%d %H:%M:%S", localtime(&t));
     return temp;
 }
 
 std::string get_ip_by_domain(std::string domain)
 {
-    struct hostent* host=nullptr;
+    struct hostent *host = nullptr;
     host = gethostbyname(domain.c_str());
-    if (host==nullptr)
+    if (host == nullptr)
     {
         return "";
     }
-    char ip[100];
-    unsigned char pLen;
-    inet_ntop(AF_INET6,host->h_addr,ip,pLen);
-    std::cout<<ip<<std::endl;
-    std::cout<<host->h_addr<<std::endl;
-    return ip;
+    return inet_ntoa(*(struct in_addr *)host->h_addr);
 }
