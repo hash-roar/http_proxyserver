@@ -145,7 +145,7 @@ void http_conn::parse_header(const std::string &head_str)
         http_info_obj.uri = url.substr(0, pos);
         query_string = url.substr(pos + 1);
     }
-    http_info_obj.uri =url;
+    http_info_obj.uri = url;
     http_info_obj.http_version = head_first_line_infos[2];
     //解析剩下所有,放入map中
     std::string head;
@@ -196,6 +196,11 @@ void http_conn::resolve_get()
     {
         fourOfour_error();
     }
+    else if (st.st_mode & S_IFDIR) //请求文件为目录
+    {
+        file_path = file_path + "/" + self_config.get_index();
+    }
+
     else
     {
         mime_type = parse_mime_type(file_path);
@@ -240,7 +245,7 @@ void http_conn::server_error()
     send(fd, buf, strlen(buf), 0);
     sprintf(buf, "<html><title>error</title><meta http-equiv='Content-Type' content='text/html'; charset='UTF-8'>\r\n");
     send(fd, buf, strlen(buf), 0);
-    sprintf(buf, "<body><h1>服务端发生错误!</h1>\r\n");
+    sprintf(buf, "<body><h1>你要的,它的归属不在这里.</h1><h1> 世界终将404</h1>\r\n");
     send(fd, buf, strlen(buf), 0);
     sprintf(buf, "</body></html>\r\n");
     send(fd, buf, strlen(buf), 0);

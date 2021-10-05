@@ -11,12 +11,16 @@ http:
              root: ./wwwroot
              index: poets.html
          - location:
-             url: /proxy
-             proxy_pass: http://127.0.0.1:8997/api/
+             url: ~ /proxy.*
+             proxy_pass: http://127.0.0.1:8997/api
              proxy_set_header: Host localhost
+         - location:
+             url: /poets
+             index: poets.html
   - server:
       listen: 8997
       server_name: bingyan/0.1.0
+
 #   - server:
 #       listen: 8999
 #       server_name: bingyan/0.1.0

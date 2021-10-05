@@ -32,19 +32,20 @@ bool server_config::url_route(std::string url, http_config &htt_conf)
         auto &&rule_array = split_string(item.first, ' ');
         if (rule_array.size() == 2) //有匹配规则
         {
-            std::string rule = rule_array[0];
+            deb1(url)
+                std::string rule = rule_array[0];
             std::string config_url = rule_array[1];
             if (rule == "=") //精确匹配
             {
                 if (url == config_url)
                 {
                     htt_conf = item.second;
-                    return;
+                    return true;
                 }
             }
             if (rule == "^~") //非正则匹配
             {
-                if (url.find_first_of(config_url) == 0) //匹配一个即停止
+                if (url.find(config_url) == 0) //匹配一个即停止
                 {
                     if (!Nregx_math_success.empty())
                     {
@@ -71,13 +72,36 @@ bool server_config::url_route(std::string url, http_config &htt_conf)
         }
         else //没有匹配规则,前缀匹配
         {
-            if (url.find_first_of(item.first) == 0) //匹配一个即停止
+            if (url.find(item.first) == 0) //匹配一个即停止
             {
-                prefix_math_success.push_back(&item.second);
+                auto pos = url.find_first_of(item.first);
+                deb1(url)
+                    prefix_math_success.push_back(&item.second);
             }
         }
     }
-    //没有完全匹配到,进行一般匹配
+
+    //根据顺序将匹配到的配置赋值给外部变量
+    if (!Nregx_math_success.empty())
+    {
+        htt_conf = *Nregx_math_success[0];
+        return true;
+    }
+    if (!iregx_math_success.empty())
+    {
+        htt_conf = *iregx_math_success[0];
+        return true;
+    }
+    if (!Iregx_math_success.empty())
+    {
+        htt_conf = *Iregx_math_success[0];
+        return true;
+    }
+    if (!prefix_math_success.empty())
+    {
+        htt_conf = *prefix_math_success[0];
+        return true;
+    }
 
     // std::vector<http_config> rout_configs; //储存所有匹配到的规则
 
