@@ -17,6 +17,12 @@ bool http_conn::handle_request()
     char buffer[4096];
     bzero(buffer, sizeof(buffer));
     int head_length = recv(fd, buffer, sizeof(buffer), 0);
+    if (head_length == 0)
+    {
+        std::cout << "读缓冲区错误" << std::endl;
+        return false;
+    }
+
     parse_header(buffer);
     if (http_info_obj.mehtod != "GET")
     {
@@ -44,7 +50,7 @@ void http_conn::handle_proxy()
     std::string proxy_pass = self_config.get_proxy_pass();
     std::string domain;
     std::string port;
-    std::string proxy_pass_url = "/";
+    std::string proxy_pass_url = http_info_obj.uri;
     //解析域名及端口
     auto pos = proxy_pass.find_first_of("//");
     proxy_pass = proxy_pass.substr(pos + 2);
@@ -53,7 +59,6 @@ void http_conn::handle_proxy()
         auto pos = proxy_pass.find_first_of("/");
         proxy_pass_url = proxy_pass.substr(pos);
         proxy_pass = proxy_pass.substr(0, pos);
-        deb1(proxy_pass << "    " << proxy_pass_url)
     }
     if (proxy_pass.find_last_of(":") == std::string::npos)
     {

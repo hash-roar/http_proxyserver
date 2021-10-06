@@ -17,6 +17,10 @@ http:
          - location:
              url: /poets
              index: poets.html
+         - location:
+             url: /test
+             root: ./wwwroot/test
+             index: index.php
   - server:
       listen: 8997
       server_name: bingyan/0.1.0
